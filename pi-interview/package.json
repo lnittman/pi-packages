@@ -1,0 +1,54 @@
+{
+  "name": "@lnittman/pi-interview",
+  "version": "0.12.1",
+  "type": "module",
+  "description": "Multiple-choice + notes interview for pi — ask-deep style structured prompting after every agent turn",
+  "license": "MIT",
+  "author": "Luke Nittmann",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lnittman/pi-interview.git"
+  },
+  "main": "dist/index.js",
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "keywords": [
+    "pi-package",
+    "pi-coding-agent",
+    "pi-extension",
+    "interview",
+    "multiple-choice",
+    "ask-deep",
+    "developer-tools",
+    "coding-agent"
+  ],
+  "pi": {
+    "extensions": [
+      "./dist/index.js"
+    ]
+  },
+  "scripts": {
+    "build": "rm -rf dist && tsc -p tsconfig.build.json",
+    "dev": "tsc -p tsconfig.build.json --watch",
+    "test": "pnpm run build && node --test test/*.test.mjs",
+    "typecheck": "tsc --noEmit",
+    "prepublishOnly": "npm run build"
+  },
+  "peerDependencies": {
+    "@mariozechner/pi-agent-core": "*",
+    "@mariozechner/pi-ai": "*",
+    "@mariozechner/pi-coding-agent": "*",
+    "@mariozechner/pi-tui": "*"
+  },
+  "devDependencies": {
+    "@mariozechner/pi-agent-core": "*",
+    "@mariozechner/pi-ai": "*",
+    "@mariozechner/pi-coding-agent": "*",
+    "@types/node": "^22.0.0",
+    "typescript": "^5.7.3",
+    "@mariozechner/pi-tui": "*"
+  },
+  "packageManager": "pnpm@10.33.0"
+}

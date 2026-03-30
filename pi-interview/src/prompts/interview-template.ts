@@ -1,0 +1,111 @@
+/**
+ * Interview prompt template.
+ *
+ * No archetypes, no situation matching, no template logic.
+ * Give the model the full context and let it reason about what to ask.
+ */
+
+import type { TurnContext, QuizConfig } from "../core/types.js";
+import type { ProjectSnapshot } from "../core/project-context.js";
+import { formatProjectContext } from "../core/project-context.js";
+import type { AgentContext } from "../core/agent-context.js";
+import { formatAgentContext } from "../core/agent-context.js";
+
+function truncate(value: string, maxChars: number): string {
+  if (value.length <= maxChars) return value;
+  return value.slice(0, maxChars) + "\u2026";
+}
+
+export interface QuizPromptContext {
+  assistantText: string;
+  turnStatus: TurnContext["status"];
+  recentUserPrompts: string[];
+  toolSignals: string[];
+  touchedFiles: string[];
+  unresolvedQuestions: string[];
+  abortContextNote?: string;
+  projectContext?: string;
+  agentContext?: string;
+  trajectory?: string[];
+  sessionFiles?: string[];
+  maxQuestions: number;
+  maxOptions: number;
+  customInstruction: string;
+}
+
+export function buildQuizPromptContext(
+  turn: TurnContext,
+  config: QuizConfig,
+  project?: ProjectSnapshot,
+  agent?: AgentContext | null
+): QuizPromptContext {
+  return {
+    assistantText: truncate(turn.assistantText, 50_000),
+    turnStatus: turn.status,
+    recentUserPrompts: turn.recentUserPrompts
+      .slice(0, 10)
+      .map((p) => truncate(p, 500)),
+    toolSignals: turn.toolSignals.slice(0, 12),
+    touchedFiles: turn.touchedFiles.slice(0, 10),
+    unresolvedQuestions: turn.unresolvedQuestions.slice(0, 8),
+    abortContextNote: turn.abortContextNote
+      ? truncate(turn.abortContextNote, 300)
+      : undefined,
+    projectContext: project ? formatProjectContext(project) : undefined,
+    agentContext: agent ? formatAgentContext(agent) : undefined,
+    trajectory: turn.trajectory,
+    sessionFiles: turn.sessionFiles,
+    maxQuestions: config.maxQuestions,
+    maxOptions: config.maxOptions,
+    customInstruction: config.customInstruction,
+  };
+}
+
+export function renderQuizPrompt(ctx: QuizPromptContext): string {
+  return `You generate interview questions to help a developer decide what to tell their coding agent next. The user sees multi-select checkboxes and can add freeform notes.
+
+Return ONLY valid JSON:
+{
+  "questions": [
+    {
+      "id": "string",
+      "text": "Question under 80 chars",
+      "type": "multi",
+      "options": [
+        { "label": "Action under 60 chars", "description": "brief context" }
+      ]
+    }
+  ],
+  "skipped": false
+}
+
+Return { "questions": [], "skipped": true, "skipReason": "..." } when the next step is obvious.
+
+${ctx.projectContext ? `Project:\n${ctx.projectContext}\n` : ""}${ctx.agentContext ? `Ecosystem:\n${ctx.agentContext}\n` : ""}${ctx.trajectory && ctx.trajectory.length > 0 ? `Session trajectory:\n${ctx.trajectory.map((t) => `- ${t}`).join("\n")}\n` : ""}${ctx.sessionFiles && ctx.sessionFiles.length > 0 ? `All files touched this session:\n${ctx.sessionFiles.map((f) => `- ${f}`).join("\n")}\n` : ""}
+Turn: ${ctx.turnStatus}${ctx.abortContextNote ? ` (${ctx.abortContextNote})` : ""}
+
+Recent user messages:
+${ctx.recentUserPrompts.length > 0 ? ctx.recentUserPrompts.map((p) => `- ${p}`).join("\n") : "(none)"}
+
+Tools used this turn:
+${ctx.toolSignals.length > 0 ? ctx.toolSignals.map((s) => `- ${s}`).join("\n") : "(none)"}
+
+Files changed this turn:
+${ctx.touchedFiles.length > 0 ? ctx.touchedFiles.map((f) => `- ${f}`).join("\n") : "(none)"}
+
+Questions the agent asked:
+${ctx.unresolvedQuestions.length > 0 ? ctx.unresolvedQuestions.map((q) => `- ${q}`).join("\n") : "(none)"}
+
+Agent's message:
+${ctx.assistantText || "(empty)"}
+${ctx.customInstruction.trim() ? `\nUser preference: ${ctx.customInstruction.trim()}` : ""}
+
+Rules:
+- Ground every option in the context: name files, functions, tests, errors, skills, or branches
+- Reference the session trajectory when suggesting next steps
+- If the agent asked questions, turn them into structured options
+- If a skill from the ecosystem fits, offer "Use [skill-name] for this"
+- Skip if the agent's message clearly proposes one next step and the user just needs to agree
+- BANNED: "Continue working", "Fix issues", "Improve code", "Look into it", any vague option
+- ${ctx.maxQuestions} questions max, ${ctx.maxOptions} options max, type always "multi"`;
+}
