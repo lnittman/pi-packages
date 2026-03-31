@@ -1,0 +1,40 @@
+{
+  "name": "@lnittman/pi-outline",
+  "version": "0.1.0",
+  "type": "module",
+  "private": true,
+  "description": "Pi extension for AST-based code structure — outline, diff, search, stats in agent sessions",
+  "license": "MIT",
+  "author": "Luke Nittmann",
+  "main": "dist/index.js",
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "pi": {
+    "extensions": [
+      "./dist/index.js"
+    ]
+  },
+  "scripts": {
+    "build": "rm -rf dist && tsc -p tsconfig.build.json",
+    "dev": "tsc -p tsconfig.build.json --watch",
+    "test": "npm run build && node --test test/*.test.mjs",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@lnittman/outline": "^1.2.0"
+  },
+  "peerDependencies": {
+    "@mariozechner/pi-agent-core": "*",
+    "@mariozechner/pi-coding-agent": "*",
+    "@mariozechner/pi-tui": "*"
+  },
+  "devDependencies": {
+    "@mariozechner/pi-agent-core": "*",
+    "@mariozechner/pi-coding-agent": "*",
+    "@mariozechner/pi-tui": "*",
+    "@types/node": "^22.0.0",
+    "typescript": "^5.7.3"
+  }
+}
